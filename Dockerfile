@@ -17,6 +17,7 @@ RUN apt-get update && apt-get install -y \
     python3.9
 
 # Continuer avec l'installation des bibliothèques CUDA
+RUN  apt-get install -y cuda-toolkit
 RUN apt-get install -y --no-install-recommends \
     cuda \
     libcudnn8 \
@@ -45,21 +46,15 @@ RUN pip install opencv-python-headless \
 RUN pip install -r requirements.txt
 RUN pip install jupyter
 RUN pip install --upgrade protobuf
-# Installer les bibliothèques liées à l'object detection
-RUN pip install object_detection
+# Installer les bibliothèques liées à l'object detectio
+RUN pip install --upgrade tensorflow object-detection
+RUN pip install tensorflow_io easyocr
 RUN pip install tf-models-official
 
 # Exécutez la compilation des fichiers protobuf
 # Get protoc 3.0.0, rather than the old version already in the container
-RUN rm -rf models
-RUN git clone https://github.com/tensorflow/models.git
-
-# Run protoc on the object detection repo
-RUN cd models/research && \
-	protoc --python_out=. ./object_detection/protos/*.proto
-
+       
 EXPOSE 8888
 
 # Démarrez le serveur Jupyter Notebook
 CMD ["jupyter", "notebook", "--ip=0.0.0.0", "--port=8888", "--allow-root"]
-
