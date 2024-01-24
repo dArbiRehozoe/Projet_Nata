@@ -2,6 +2,14 @@
 FROM tensorflow/tensorflow:latest-gpu-jupyter
 # Spécifiez la version de Python# Mise à jour des packages et installation de Python 3.9
 RUN apt-get update && apt-get install -y python3.9
+# Installez les dépendances nécessaires pour le GPU
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libcudnn8=8.*-1+cuda* \
+    libcudnn8-dev=8.*-1+cuda* \
+    libnccl2=2.8.3-1+cuda* \
+    libnccl-dev=2.8.3-1+cuda* \
+    && apt-mark hold libcudnn8 \
+    && apt-mark hold libnccl2
 
 # Installation des outils de dévelo
 RUN apt-get install -y python3-dev
@@ -25,7 +33,7 @@ RUN pip install tf-models-official
 
 # Installez les dépendances supplémentaires, s'il y en a
 RUN pip install -r requirements.txt
-# Exposez le port de Jupyter Notebook
+# Exécutez la compilation des fichiers protobuf
 RUN protoc object_detection/protos/*.proto --python_out=.
 EXPOSE 8888
 
