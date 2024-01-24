@@ -1,16 +1,29 @@
 # Utilisez une image TensorFlow avec Jupyter préinstallé
-FROM tensorflow/tensorflow:latest-gpu-jupyter
-# Spécifiez la version de Python# Mise à jour des packages et installation de Python 3.9
+FROM tensorflow/tensorflow:2.7.0-gpu-jupyter
+
+# Ajouter la clé GPG du référentiel CUDA
+RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys A4B469963BF863CC
+
+# Mettre à jour les paquets en forçant l'utilisation d'HTTP pour éviter les erreurs GPG
+RUN apt-get update -o Acquire::AllowInsecureRepositories=true -o Acquire::AllowDowngradeToInsecureRepositories=true
+
+# Mettre à jour à nouveau la liste des paquets
+RUN apt-get update --allow-releaseinfo-change
+
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    libfuse-dev
+
 RUN apt-get update && apt-get install -y python3.9
-# Installez les dépendances nécessaires pour le GPU
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libcudnn8=8.*-1+cuda* \
-    libcudnn8-dev=8.*-1+cuda* \
-    libnccl2=2.8.3-1+cuda* \
-    libnccl-dev=2.8.3-1+cuda* \
+# Continuer avec l'installation des bibliothèques CUDA
+RUN apt-get install -y --no-install-recommends \
+    cuda-compiler-11-4 \
+    libcudnn8=8.2.4.15-1+cuda11.4 \
+    libcudnn8-dev=8.2.4.15-1+cuda11.4 \
+    libnccl2=2.11.4-1+cuda11.4 \
+    libnccl-dev=2.11.4-1+cuda11.4 \
     && apt-mark hold libcudnn8 \
     && apt-mark hold libnccl2
-
 # Installation des outils de dévelo
 RUN apt-get install -y python3-dev
 RUN apt-get update && apt-get install -y build-essential protobuf-compiler
@@ -25,14 +38,13 @@ RUN pip install opencv-python-headless \
                 matplotlib
 RUN pip install google-api-python-client immutabledict kaggle oauth2client opencv-python-headless py-cpuinfo sentencepiece seqeval tensorflow-datasets tensorflow-hub tensorflow-model-optimization tensorflow-text
 
-RUN pip install --upgrade tensorflow
 
 RUN pip install object_detection
 
 RUN pip install tf-models-official
 
 # Installez les dépendances supplémentaires, s'il y en a
-RUN pip install -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 # Exécutez la compilation des fichiers protobuf
 RUN protoc object_detection/protos/*.proto --python_out=.
 EXPOSE 8888
