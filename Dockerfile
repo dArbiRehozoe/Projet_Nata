@@ -1,5 +1,5 @@
 # Utilisez une image TensorFlow avec Jupyter préinstallé
-FROM tensorflow/tensorflow:2.7.0-gpu-jupyter
+FROM tensorflow/tensorflow:latest-gpu-jupyter
 
 # Ajouter la clé GPG du référentiel CUDA
 RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys A4B469963BF863CC
@@ -10,44 +10,56 @@ RUN apt-get update -o Acquire::AllowInsecureRepositories=true -o Acquire::AllowD
 # Mettre à jour à nouveau la liste des paquets
 RUN apt-get update --allow-releaseinfo-change
 
+# Installer les autres dépendances nécessaires
 RUN apt-get update && apt-get install -y \
     pkg-config \
-    libfuse-dev
+    libfuse-dev \
+    python3.9
 
-RUN apt-get update && apt-get install -y python3.9
 # Continuer avec l'installation des bibliothèques CUDA
 RUN apt-get install -y --no-install-recommends \
-    cuda-compiler-11-4 \
-    libcudnn8=8.2.4.15-1+cuda11.4 \
-    libcudnn8-dev=8.2.4.15-1+cuda11.4 \
-    libnccl2=2.11.4-1+cuda11.4 \
-    libnccl-dev=2.11.4-1+cuda11.4 \
-    && apt-mark hold libcudnn8 \
-    && apt-mark hold libnccl2
-# Installation des outils de dévelo
+    cuda \
+    libcudnn8 \
+    libcudnn8-dev \
+    libnccl2 \
+    libnccl-dev
+
+# Installation des outils de développement
 RUN apt-get install -y python3-dev
 RUN apt-get update && apt-get install -y build-essential protobuf-compiler
 RUN apt-get update && apt-get install -y  libatlas-base-dev  liblapack-dev gfortran libcairo2-dev libmariadb-dev build-essential libffi-dev curl
+
 # Copiez les fichiers nécessaires dans le conteneur
-COPY object_detection/protos /app/object_detection/protos
+
 WORKDIR /app
 COPY . /app
+
+# Installation des bibliothèques Python
 RUN python3 -m pip install --upgrade pip
 RUN pip install opencv-python-headless \
                 numpy \
-                matplotlib
-RUN pip install google-api-python-client immutabledict kaggle oauth2client opencv-python-headless py-cpuinfo sentencepiece seqeval tensorflow-datasets tensorflow-hub tensorflow-model-optimization tensorflow-text
+                matplotlib \
+                google-api-python-client immutabledict kaggle oauth2client opencv-python-headless py-cpuinfo sentencepiece seqeval tensorflow-datasets tensorflow-hub tensorflow-model-optimization tensorflow-text
 
-
+# Installer Jupyter et ses dépendances
+RUN pip install -r requirements.txt
+RUN pip install jupyter
+RUN pip install --upgrade protobuf
+# Installer les bibliothèques liées à l'object detection
 RUN pip install object_detection
-
 RUN pip install tf-models-official
 
-# Installez les dépendances supplémentaires, s'il y en a
-RUN pip install --no-cache-dir -r requirements.txt
 # Exécutez la compilation des fichiers protobuf
-RUN protoc object_detection/protos/*.proto --python_out=.
+# Get protoc 3.0.0, rather than the old version already in the container
+RUN rm -rf models
+RUN git clone https://github.com/tensorflow/models.git
+
+# Run protoc on the object detection repo
+RUN cd models/research && \
+	protoc --python_out=. ./object_detection/protos/*.proto
+
 EXPOSE 8888
 
 # Démarrez le serveur Jupyter Notebook
 CMD ["jupyter", "notebook", "--ip=0.0.0.0", "--port=8888", "--allow-root"]
+
