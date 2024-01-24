@@ -48,7 +48,7 @@ RUN pip install jupyter
 RUN pip install --upgrade protobuf
 # Installer les bibliothèques liées à l'object detectio
 RUN pip install --upgrade tensorflow object-detection
-RUN pip install tensorflow_io easyocr
+RUN pip install tensorflow_io easyocr httpx ipywebrtc
 RUN pip install tf-models-official
 
 # Exécutez la compilation des fichiers protobuf
